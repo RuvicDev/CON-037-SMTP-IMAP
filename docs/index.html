@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conector SMTP / IMAP — Ruvic</title>
+  <link rel="stylesheet" href="assets/ruvic.css">
+</head>
+<body>
+  <main class="ruvic-container">
+    <nav class="ruvic-toc" aria-label="Índice">
+      <h2 data-i18n="toc_titulo">Contenido</h2>
+      <ol>
+        <li><a href="#que-es" data-i18n="toc_que_es">¿Qué es y para qué sirve?</a></li>
+        <li><a href="#prerrequisitos" data-i18n="toc_prerrequisitos">Prerrequisitos</a></li>
+        <li><a href="#configuracion-fabricante" data-i18n="toc_configuracion_fabricante">Configuración en el fabricante</a></li>
+        <li><a href="#permisos" data-i18n="toc_permisos">Permisos requeridos</a></li>
+        <li><a href="#configuracion-ruvic" data-i18n="toc_configuracion_ruvic">Configuración en Ruvic</a></li>
+        <li><a href="#verificacion" data-i18n="toc_verificacion">Verificación</a></li>
+        <li><a href="#solucion-problemas" data-i18n="toc_solucion_problemas">Solución de problemas</a></li>
+        <li><a href="#faq-seguridad" data-i18n="toc_faq_seguridad">Preguntas frecuentes y notas de seguridad</a></li>
+      </ol>
+    </nav>
+
+    <h1 data-i18n="titulo_principal">Conector SMTP / IMAP</h1>
+    <p class="guide-updated">{{ULTIMA_ACTUALIZACION}}</p>
+
+    <section>
+      <h2 id="que-es" data-i18n="que_es_titulo">¿Qué es y para qué sirve?</h2>
+      <p data-i18n="que_es_parrafo1">El conector SMTP/IMAP permite que el agente de Ruvic envíe correos y lea/busque en una bandeja de entrada, con cualquier proveedor de correo — un buzón corporativo propio, Gmail, o Microsoft 365/Outlook.</p>
+      <p data-i18n="que_es_parrafo2">Una vez configurado, puedes pedirle al agente cosas como:</p>
+      <ul>
+        <li data-i18n="que_es_ejemplo1">"Envía un correo a este cliente con el reporte adjunto."</li>
+        <li data-i18n="que_es_ejemplo2">"¿Tengo correos sin leer del proveedor de facturación?"</li>
+        <li data-i18n="que_es_ejemplo3">"Busca el correo de ayer sobre el contrato y dime qué dice."</li>
+      </ul>
+      <p data-i18n="que_es_operaciones_titulo">Operaciones soportadas:</p>
+      <table>
+        <thead><tr><th data-i18n="que_es_tabla_header_operacion">Operación</th><th data-i18n="que_es_tabla_header_descripcion">Qué hace</th></tr></thead>
+        <tbody>
+          <tr><td><code>email.send_email</code></td><td data-i18n="que_es_tabla_fila1_descripcion">Envía un correo (texto y/o HTML)</td></tr>
+          <tr><td><code>email.search_emails</code></td><td data-i18n="que_es_tabla_fila2_descripcion">Busca en la bandeja con filtros (no leído, remitente, asunto, fecha)</td></tr>
+          <tr><td><code>email.get_email</code></td><td data-i18n="que_es_tabla_fila3_descripcion">Obtiene el contenido completo de un correo puntual</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-warning">
+        <span class="callout-title" data-i18n="que_es_callout_titulo">Gmail y Outlook ya no aceptan contraseña</span>
+        <span data-i18n="que_es_callout_texto">Google desactivó la autenticación por contraseña para correo en marzo de 2025, y Microsoft hizo lo mismo el 30 de abril de 2026. Si vas a conectar Gmail o Microsoft 365, tienes que usar el modo <strong>OAuth2</strong> correspondiente — el modo de usuario/contraseña solo funciona con servidores de correo propios u otros proveedores que aún lo permitan.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2 id="prerrequisitos" data-i18n="prerrequisitos_titulo">Prerrequisitos</h2>
+      <ul>
+        <li data-i18n="prerrequisitos_item1">Una cuenta de correo dedicada a esta integración — no uses tu buzón personal.</li>
+        <li data-i18n="prerrequisitos_item2">Si vas a usar <strong>Gmail</strong>: acceso a Google Cloud Console para crear credenciales OAuth2.</li>
+        <li data-i18n="prerrequisitos_item3">Si vas a usar <strong>Microsoft 365/Outlook</strong>: acceso a Microsoft Entra ID (Azure AD) para registrar una app, y confirmar que SMTP AUTH esté habilitado para ese buzón (Microsoft lo desactiva por defecto en cuentas nuevas).</li>
+        <li data-i18n="prerrequisitos_item4">Si vas a usar un <strong>servidor propio</strong>: los datos de SMTP/IMAP (host, puerto) que te dé el administrador del correo, y una contraseña de aplicación si el proveedor la exige.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 id="configuracion-fabricante" data-i18n="config_fabricante_titulo">Configuración en el fabricante</h2>
+
+      <h3 data-i18n="config_fabricante_camino_a_titulo">Camino A — Gmail / Google Workspace (OAuth2)</h3>
+      <ol class="ruvic-steps">
+        <li data-i18n="config_fabricante_a_paso1"><strong>Crea (o usa) un proyecto en Google Cloud Console</strong> — <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a>.</li>
+        <li data-i18n="config_fabricante_a_paso2"><strong>Habilita la Gmail API</strong> para ese proyecto ("APIs & Services" → "Enable APIs and Services" → busca "Gmail API").</li>
+        <li data-i18n="config_fabricante_a_paso3"><strong>Crea credenciales OAuth 2.0</strong> ("Credentials" → "Create Credentials" → "OAuth client ID"), tipo "Web application", agregando la Redirect URI que te indique Ruvic al configurar el conector.</li>
+        <li data-i18n="config_fabricante_a_paso4"><strong>Copia el Client ID y Client Secret</strong> generados — los vas a necesitar en la sección de Configuración en Ruvic.</li>
+        <li data-i18n="config_fabricante_a_paso5">Si el proyecto está en modo "Testing" en la pantalla de consentimiento OAuth, agrega la cuenta de Gmail que vas a usar como "Test user", o publica la app si necesitas usar cualquier cuenta.</li>
+      </ol>
+
+      <h3 data-i18n="config_fabricante_camino_b_titulo">Camino B — Microsoft 365 / Outlook (OAuth2)</h3>
+      <ol class="ruvic-steps">
+        <li data-i18n="config_fabricante_b_paso1"><strong>Registra una app</strong> en <a href="https://entra.microsoft.com/" target="_blank" rel="noopener">Microsoft Entra admin center</a> → "App registrations" → "New registration".</li>
+        <li data-i18n="config_fabricante_b_paso2"><strong>Agrega la Redirect URI</strong> que te indique Ruvic, en la sección "Authentication".</li>
+        <li data-i18n="config_fabricante_b_paso3"><strong>Crea un Client Secret</strong> en "Certificates & secrets" — cópialo de inmediato, solo se muestra una vez.</li>
+        <li data-i18n="config_fabricante_b_paso4"><strong>Otorga los permisos de API</strong> ("API permissions" → "Add a permission" → "APIs my organization uses" → busca "Office 365 Exchange Online") con los scopes <code>SMTP.Send</code> e <code>IMAP.AccessAsUser.All</code>.</li>
+        <li data-i18n="config_fabricante_b_paso5"><strong>Confirma que SMTP AUTH esté habilitado</strong> para el buzón específico — un administrador puede verificarlo/activarlo desde el Centro de administración de Exchange o con PowerShell (<code>Set-CASMailbox -SmtpClientAuthenticationDisabled $false</code>).</li>
+      </ol>
+
+      <h3 data-i18n="config_fabricante_camino_c_titulo">Camino C — Servidor de correo propio (usuario/contraseña)</h3>
+      <ol class="ruvic-steps">
+        <li data-i18n="config_fabricante_c_paso1"><strong>Pide al administrador del correo</strong> los datos de conexión: host y puerto de SMTP, host y puerto de IMAP.</li>
+        <li data-i18n="config_fabricante_c_paso2"><strong>Genera una contraseña de aplicación</strong> si el proveedor la exige (algunos paneles de hosting como cPanel la llaman así, o simplemente usan la contraseña normal de la cuenta).</li>
+        <li data-i18n="config_fabricante_c_paso3"><strong>Confirma que la cuenta tenga SMTP e IMAP habilitados</strong> — algunos proveedores los desactivan por defecto para cuentas nuevas.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2 id="permisos" data-i18n="permisos_titulo">Permisos requeridos</h2>
+      <table>
+        <thead><tr><th data-i18n="permisos_tabla_header_modo">Modo</th><th data-i18n="permisos_tabla_header_alcance">Alcance otorgado</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="permisos_tabla_fila1_modo">Gmail (OAuth2)</td><td data-i18n="permisos_tabla_fila1_alcance">Scope <code>https://mail.google.com/</code> — acceso completo de correo (enviar y leer), sin acceso a Drive, Calendar, ni otros servicios de Google</td></tr>
+          <tr><td data-i18n="permisos_tabla_fila2_modo">Microsoft (OAuth2)</td><td data-i18n="permisos_tabla_fila2_alcance">Scopes <code>SMTP.Send</code> e <code>IMAP.AccessAsUser.All</code> — solo correo, sin acceso a OneDrive, Calendar, ni Teams</td></tr>
+          <tr><td data-i18n="permisos_tabla_fila3_modo">Contraseña (servidor propio)</td><td data-i18n="permisos_tabla_fila3_alcance">El alcance que tenga la cuenta de correo configurada en el servidor — usa una cuenta dedicada, no una cuenta con privilegios administrativos del correo</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2 id="configuracion-ruvic" data-i18n="config_ruvic_titulo">Configuración en Ruvic</h2>
+      <p data-i18n="config_ruvic_parrafo1">Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>SMTP / IMAP</strong> y pulsa <strong>Configurar</strong>. Elige el modo según tu proveedor:</p>
+      <table>
+        <thead><tr><th data-i18n="config_ruvic_tabla_header_modo">Modo</th><th data-i18n="config_ruvic_tabla_header_cuando">Cuándo usarlo</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="config_ruvic_tabla_fila1_modo">Usuario y contraseña</td><td data-i18n="config_ruvic_tabla_fila1_cuando">Servidor de correo propio, o proveedores que todavía permiten contraseña</td></tr>
+          <tr><td data-i18n="config_ruvic_tabla_fila2_modo">Gmail / Google Workspace (OAuth2)</td><td data-i18n="config_ruvic_tabla_fila2_cuando">Obligatorio para cualquier cuenta de Gmail</td></tr>
+          <tr><td data-i18n="config_ruvic_tabla_fila3_modo">Microsoft 365 / Outlook (OAuth2)</td><td data-i18n="config_ruvic_tabla_fila3_cuando">Obligatorio para cualquier cuenta de Outlook/Microsoft 365</td></tr>
+        </tbody>
+      </table>
+      <p><span data-i18n="config_ruvic_parrafo2">Completa los campos del modo elegido con lo que obtuviste en la sección anterior, y pulsa</span> <span class="ruvic-button" data-i18n="config_ruvic_boton_probar_conexion">Probar conexión</span>.</p>
+    </section>
+
+    <section>
+      <h2 id="verificacion" data-i18n="verificacion_titulo">Verificación</h2>
+      <ol class="ruvic-steps">
+        <li data-i18n="verificacion_paso1"><strong>Test de conexión exitoso.</strong> El botón <em>Probar conexión</em> debe responder: <em>"Conexión exitosa a [servidor IMAP] (modo: ...)"</em>.</li>
+        <li>
+          <span data-i18n="verificacion_paso2_texto"><strong>Prueba mínima con el agente.</strong> Pide algo de solo lectura primero:</span>
+          <blockquote><em data-i18n="verificacion_paso2_ejemplo">"¿Tengo correos sin leer?"</em></blockquote>
+        </li>
+        <li>
+          <span data-i18n="verificacion_paso3_texto"><strong>Prueba de envío (opcional, con cuidado).</strong> Pide un envío de bajo riesgo, por ejemplo a tu propia cuenta:</span>
+          <blockquote><em data-i18n="verificacion_paso3_ejemplo">"Envíame un correo de prueba a mí mismo."</em></blockquote>
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2 id="solucion-problemas" data-i18n="solucion_problemas_titulo">Solución de problemas</h2>
+      <table>
+        <thead><tr><th data-i18n="solucion_problemas_tabla_header_mensaje">Mensaje / síntoma</th><th data-i18n="solucion_problemas_tabla_header_causa">Causa probable y solución</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="solucion_problemas_fila1_mensaje">"Autenticación SMTP/IMAP fallida" con Gmail o Outlook</td><td data-i18n="solucion_problemas_fila1_causa">Estás usando el modo de contraseña con un proveedor que ya no lo acepta. Cambia al modo OAuth2 correspondiente.</td></tr>
+          <tr><td data-i18n="solucion_problemas_fila2_mensaje">"550 5.7.30 Basic authentication is not supported" (Microsoft)</td><td data-i18n="solucion_problemas_fila2_causa">Confirma que uses el modo OAuth2 Microsoft, no contraseña — este es el mensaje exacto que da Microsoft cuando se intenta con contraseña.</td></tr>
+          <tr><td data-i18n="solucion_problemas_fila3_mensaje">"No se pudo renovar el token OAuth2..." (HTTP 400/401)</td><td data-i18n="solucion_problemas_fila3_causa">La autorización fue revocada, o el Client Secret cambió. Vuelve a autorizar el conector desde Settings → Conectores.</td></tr>
+          <tr><td data-i18n="solucion_problemas_fila4_mensaje">"No se pudo conectar..." (timeout/red)</td><td data-i18n="solucion_problemas_fila4_causa">Verifica el host/puerto configurados (modo contraseña), o que no haya un firewall bloqueando los puertos 587/993.</td></tr>
+          <tr><td data-i18n="solucion_problemas_fila5_mensaje">SMTP AUTH deshabilitado (Microsoft)</td><td data-i18n="solucion_problemas_fila5_causa">Pide a un administrador de Microsoft 365 que habilite SMTP AUTH para ese buzón específico — viene desactivado por defecto en cuentas nuevas.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2 id="faq-seguridad" data-i18n="faq_titulo">Preguntas frecuentes y notas de seguridad</h2>
+      <h3 data-i18n="faq_pregunta1_titulo">¿Por qué no puedo simplemente usar mi contraseña de Gmail?</h3>
+      <p data-i18n="faq_pregunta1_respuesta">Porque Google la desactivó para este propósito en marzo de 2025 — es una decisión de seguridad de Google, no una limitación de este conector. El reemplazo es OAuth2.</p>
+
+      <h3 data-i18n="faq_pregunta2_titulo">¿El conector puede leer/enviar cualquier correo de mi cuenta?</h3>
+      <p data-i18n="faq_pregunta2_respuesta">Solo dentro de los scopes otorgados (correo), y solo lo que el agente le pida explícitamente hacer — no hay un acceso "de fondo" indefinido más allá de las llamadas que se ejecuten.</p>
+
+      <h3 data-i18n="faq_pregunta3_titulo">¿Dónde quedan guardadas las credenciales?</h3>
+      <p data-i18n="faq_pregunta3_respuesta">Como secreto en el almacén de credenciales de la plataforma. La interfaz nunca vuelve a mostrarlas.</p>
+
+      <h3 data-i18n="faq_pregunta4_titulo">Rotación de credenciales</h3>
+      <p data-i18n="faq_pregunta4_respuesta">Para OAuth2, la plataforma renueva el token automáticamente — solo necesitas re-autorizar si la autorización se revoca manualmente. Para el modo de contraseña, rota la contraseña de aplicación periódicamente según la política de tu proveedor.</p>
+
+      <div class="callout callout-warning">
+        <span class="callout-title" data-i18n="faq_callout_titulo">Buenas prácticas</span>
+        <span data-i18n="faq_callout_texto">Usa una cuenta de correo dedicada a esta integración, no tu buzón personal; en OAuth2, otorga solo los scopes de correo (no marques permisos adicionales de Calendar/Drive/OneDrive al crear las credenciales); y confirma con el usuario antes de que el agente envíe correos a múltiples destinatarios.</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.I18N = window.I18N || {};
+    window.I18N['smtp_imap'] = {
+      es: {
+        "toc_titulo": "Contenido",
+        "toc_que_es": "¿Qué es y para qué sirve?",
+        "toc_prerrequisitos": "Prerrequisitos",
+        "toc_configuracion_fabricante": "Configuración en el fabricante",
+        "toc_permisos": "Permisos requeridos",
+        "toc_configuracion_ruvic": "Configuración en Ruvic",
+        "toc_verificacion": "Verificación",
+        "toc_solucion_problemas": "Solución de problemas",
+        "toc_faq_seguridad": "Preguntas frecuentes y notas de seguridad",
+        "titulo_principal": "Conector SMTP / IMAP",
+        "que_es_titulo": "¿Qué es y para qué sirve?",
+        "que_es_parrafo1": "El conector SMTP/IMAP permite que el agente de Ruvic envíe correos y lea/busque en una bandeja de entrada, con cualquier proveedor de correo — un buzón corporativo propio, Gmail, o Microsoft 365/Outlook.",
+        "que_es_parrafo2": "Una vez configurado, puedes pedirle al agente cosas como:",
+        "que_es_ejemplo1": "\"Envía un correo a este cliente con el reporte adjunto.\"",
+        "que_es_ejemplo2": "\"¿Tengo correos sin leer del proveedor de facturación?\"",
+        "que_es_ejemplo3": "\"Busca el correo de ayer sobre el contrato y dime qué dice.\"",
+        "que_es_operaciones_titulo": "Operaciones soportadas:",
+        "que_es_tabla_header_operacion": "Operación",
+        "que_es_tabla_header_descripcion": "Qué hace",
+        "que_es_tabla_fila1_descripcion": "Envía un correo (texto y/o HTML)",
+        "que_es_tabla_fila2_descripcion": "Busca en la bandeja con filtros (no leído, remitente, asunto, fecha)",
+        "que_es_tabla_fila3_descripcion": "Obtiene el contenido completo de un correo puntual",
+        "que_es_callout_titulo": "Gmail y Outlook ya no aceptan contraseña",
+        "que_es_callout_texto": "Google desactivó la autenticación por contraseña para correo en marzo de 2025, y Microsoft hizo lo mismo el 30 de abril de 2026. Si vas a conectar Gmail o Microsoft 365, tienes que usar el modo <strong>OAuth2</strong> correspondiente — el modo de usuario/contraseña solo funciona con servidores de correo propios u otros proveedores que aún lo permitan.",
+        "prerrequisitos_titulo": "Prerrequisitos",
+        "prerrequisitos_item1": "Una cuenta de correo dedicada a esta integración — no uses tu buzón personal.",
+        "prerrequisitos_item2": "Si vas a usar <strong>Gmail</strong>: acceso a Google Cloud Console para crear credenciales OAuth2.",
+        "prerrequisitos_item3": "Si vas a usar <strong>Microsoft 365/Outlook</strong>: acceso a Microsoft Entra ID (Azure AD) para registrar una app, y confirmar que SMTP AUTH esté habilitado para ese buzón (Microsoft lo desactiva por defecto en cuentas nuevas).",
+        "prerrequisitos_item4": "Si vas a usar un <strong>servidor propio</strong>: los datos de SMTP/IMAP (host, puerto) que te dé el administrador del correo, y una contraseña de aplicación si el proveedor la exige.",
+        "config_fabricante_titulo": "Configuración en el fabricante",
+        "config_fabricante_camino_a_titulo": "Camino A — Gmail / Google Workspace (OAuth2)",
+        "config_fabricante_a_paso1": "<strong>Crea (o usa) un proyecto en Google Cloud Console</strong> — <a href=\"https://console.cloud.google.com/\" target=\"_blank\" rel=\"noopener\">console.cloud.google.com</a>.",
+        "config_fabricante_a_paso2": "<strong>Habilita la Gmail API</strong> para ese proyecto (\"APIs & Services\" → \"Enable APIs and Services\" → busca \"Gmail API\").",
+        "config_fabricante_a_paso3": "<strong>Crea credenciales OAuth 2.0</strong> (\"Credentials\" → \"Create Credentials\" → \"OAuth client ID\"), tipo \"Web application\", agregando la Redirect URI que te indique Ruvic al configurar el conector.",
+        "config_fabricante_a_paso4": "<strong>Copia el Client ID y Client Secret</strong> generados — los vas a necesitar en la sección de Configuración en Ruvic.",
+        "config_fabricante_a_paso5": "Si el proyecto está en modo \"Testing\" en la pantalla de consentimiento OAuth, agrega la cuenta de Gmail que vas a usar como \"Test user\", o publica la app si necesitas usar cualquier cuenta.",
+        "config_fabricante_camino_b_titulo": "Camino B — Microsoft 365 / Outlook (OAuth2)",
+        "config_fabricante_b_paso1": "<strong>Registra una app</strong> en <a href=\"https://entra.microsoft.com/\" target=\"_blank\" rel=\"noopener\">Microsoft Entra admin center</a> → \"App registrations\" → \"New registration\".",
+        "config_fabricante_b_paso2": "<strong>Agrega la Redirect URI</strong> que te indique Ruvic, en la sección \"Authentication\".",
+        "config_fabricante_b_paso3": "<strong>Crea un Client Secret</strong> en \"Certificates & secrets\" — cópialo de inmediato, solo se muestra una vez.",
+        "config_fabricante_b_paso4": "<strong>Otorga los permisos de API</strong> (\"API permissions\" → \"Add a permission\" → \"APIs my organization uses\" → busca \"Office 365 Exchange Online\") con los scopes <code>SMTP.Send</code> e <code>IMAP.AccessAsUser.All</code>.",
+        "config_fabricante_b_paso5": "<strong>Confirma que SMTP AUTH esté habilitado</strong> para el buzón específico — un administrador puede verificarlo/activarlo desde el Centro de administración de Exchange o con PowerShell (<code>Set-CASMailbox -SmtpClientAuthenticationDisabled $false</code>).",
+        "config_fabricante_camino_c_titulo": "Camino C — Servidor de correo propio (usuario/contraseña)",
+        "config_fabricante_c_paso1": "<strong>Pide al administrador del correo</strong> los datos de conexión: host y puerto de SMTP, host y puerto de IMAP.",
+        "config_fabricante_c_paso2": "<strong>Genera una contraseña de aplicación</strong> si el proveedor la exige (algunos paneles de hosting como cPanel la llaman así, o simplemente usan la contraseña normal de la cuenta).",
+        "config_fabricante_c_paso3": "<strong>Confirma que la cuenta tenga SMTP e IMAP habilitados</strong> — algunos proveedores los desactivan por defecto para cuentas nuevas.",
+        "permisos_titulo": "Permisos requeridos",
+        "permisos_tabla_header_modo": "Modo",
+        "permisos_tabla_header_alcance": "Alcance otorgado",
+        "permisos_tabla_fila1_modo": "Gmail (OAuth2)",
+        "permisos_tabla_fila1_alcance": "Scope <code>https://mail.google.com/</code> — acceso completo de correo (enviar y leer), sin acceso a Drive, Calendar, ni otros servicios de Google",
+        "permisos_tabla_fila2_modo": "Microsoft (OAuth2)",
+        "permisos_tabla_fila2_alcance": "Scopes <code>SMTP.Send</code> e <code>IMAP.AccessAsUser.All</code> — solo correo, sin acceso a OneDrive, Calendar, ni Teams",
+        "permisos_tabla_fila3_modo": "Contraseña (servidor propio)",
+        "permisos_tabla_fila3_alcance": "El alcance que tenga la cuenta de correo configurada en el servidor — usa una cuenta dedicada, no una cuenta con privilegios administrativos del correo",
+        "config_ruvic_titulo": "Configuración en Ruvic",
+        "config_ruvic_parrafo1": "Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>SMTP / IMAP</strong> y pulsa <strong>Configurar</strong>. Elige el modo según tu proveedor:",
+        "config_ruvic_tabla_header_modo": "Modo",
+        "config_ruvic_tabla_header_cuando": "Cuándo usarlo",
+        "config_ruvic_tabla_fila1_modo": "Usuario y contraseña",
+        "config_ruvic_tabla_fila1_cuando": "Servidor de correo propio, o proveedores que todavía permiten contraseña",
+        "config_ruvic_tabla_fila2_modo": "Gmail / Google Workspace (OAuth2)",
+        "config_ruvic_tabla_fila2_cuando": "Obligatorio para cualquier cuenta de Gmail",
+        "config_ruvic_tabla_fila3_modo": "Microsoft 365 / Outlook (OAuth2)",
+        "config_ruvic_tabla_fila3_cuando": "Obligatorio para cualquier cuenta de Outlook/Microsoft 365",
+        "config_ruvic_parrafo2": "Completa los campos del modo elegido con lo que obtuviste en la sección anterior, y pulsa",
+        "config_ruvic_boton_probar_conexion": "Probar conexión",
+        "verificacion_titulo": "Verificación",
+        "verificacion_paso1": "<strong>Test de conexión exitoso.</strong> El botón <em>Probar conexión</em> debe responder: <em>\"Conexión exitosa a [servidor IMAP] (modo: ...)\"</em>.",
+        "verificacion_paso2_texto": "<strong>Prueba mínima con el agente.</strong> Pide algo de solo lectura primero:",
+        "verificacion_paso2_ejemplo": "\"¿Tengo correos sin leer?\"",
+        "verificacion_paso3_texto": "<strong>Prueba de envío (opcional, con cuidado).</strong> Pide un envío de bajo riesgo, por ejemplo a tu propia cuenta:",
+        "verificacion_paso3_ejemplo": "\"Envíame un correo de prueba a mí mismo.\"",
+        "solucion_problemas_titulo": "Solución de problemas",
+        "solucion_problemas_tabla_header_mensaje": "Mensaje / síntoma",
+        "solucion_problemas_tabla_header_causa": "Causa probable y solución",
+        "solucion_problemas_fila1_mensaje": "\"Autenticación SMTP/IMAP fallida\" con Gmail o Outlook",
+        "solucion_problemas_fila1_causa": "Estás usando el modo de contraseña con un proveedor que ya no lo acepta. Cambia al modo OAuth2 correspondiente.",
+        "solucion_problemas_fila2_mensaje": "\"550 5.7.30 Basic authentication is not supported\" (Microsoft)",
+        "solucion_problemas_fila2_causa": "Confirma que uses el modo OAuth2 Microsoft, no contraseña — este es el mensaje exacto que da Microsoft cuando se intenta con contraseña.",
+        "solucion_problemas_fila3_mensaje": "\"No se pudo renovar el token OAuth2...\" (HTTP 400/401)",
+        "solucion_problemas_fila3_causa": "La autorización fue revocada, o el Client Secret cambió. Vuelve a autorizar el conector desde Settings → Conectores.",
+        "solucion_problemas_fila4_mensaje": "\"No se pudo conectar...\" (timeout/red)",
+        "solucion_problemas_fila4_causa": "Verifica el host/puerto configurados (modo contraseña), o que no haya un firewall bloqueando los puertos 587/993.",
+        "solucion_problemas_fila5_mensaje": "SMTP AUTH deshabilitado (Microsoft)",
+        "solucion_problemas_fila5_causa": "Pide a un administrador de Microsoft 365 que habilite SMTP AUTH para ese buzón específico — viene desactivado por defecto en cuentas nuevas.",
+        "faq_titulo": "Preguntas frecuentes y notas de seguridad",
+        "faq_pregunta1_titulo": "¿Por qué no puedo simplemente usar mi contraseña de Gmail?",
+        "faq_pregunta1_respuesta": "Porque Google la desactivó para este propósito en marzo de 2025 — es una decisión de seguridad de Google, no una limitación de este conector. El reemplazo es OAuth2.",
+        "faq_pregunta2_titulo": "¿El conector puede leer/enviar cualquier correo de mi cuenta?",
+        "faq_pregunta2_respuesta": "Solo dentro de los scopes otorgados (correo), y solo lo que el agente le pida explícitamente hacer — no hay un acceso \"de fondo\" indefinido más allá de las llamadas que se ejecuten.",
+        "faq_pregunta3_titulo": "¿Dónde quedan guardadas las credenciales?",
+        "faq_pregunta3_respuesta": "Como secreto en el almacén de credenciales de la plataforma. La interfaz nunca vuelve a mostrarlas.",
+        "faq_pregunta4_titulo": "Rotación de credenciales",
+        "faq_pregunta4_respuesta": "Para OAuth2, la plataforma renueva el token automáticamente — solo necesitas re-autorizar si la autorización se revoca manualmente. Para el modo de contraseña, rota la contraseña de aplicación periódicamente según la política de tu proveedor.",
+        "faq_callout_titulo": "Buenas prácticas",
+        "faq_callout_texto": "Usa una cuenta de correo dedicada a esta integración, no tu buzón personal; en OAuth2, otorga solo los scopes de correo (no marques permisos adicionales de Calendar/Drive/OneDrive al crear las credenciales); y confirma con el usuario antes de que el agente envíe correos a múltiples destinatarios."
+      },
+      en: {
+        "toc_titulo": "Contents",
+        "toc_que_es": "What is it and what is it for?",
+        "toc_prerrequisitos": "Prerequisites",
+        "toc_configuracion_fabricante": "Provider-side configuration",
+        "toc_permisos": "Required permissions",
+        "toc_configuracion_ruvic": "Configuration in Ruvic",
+        "toc_verificacion": "Verification",
+        "toc_solucion_problemas": "Troubleshooting",
+        "toc_faq_seguridad": "FAQ and security notes",
+        "titulo_principal": "SMTP / IMAP Connector",
+        "que_es_titulo": "What is it and what is it for?",
+        "que_es_parrafo1": "The SMTP/IMAP connector lets the Ruvic agent send emails and read/search an inbox, with any email provider — your own corporate mailbox, Gmail, or Microsoft 365/Outlook.",
+        "que_es_parrafo2": "Once configured, you can ask the agent things like:",
+        "que_es_ejemplo1": "\"Send an email to this client with the report attached.\"",
+        "que_es_ejemplo2": "\"Do I have unread emails from the billing provider?\"",
+        "que_es_ejemplo3": "\"Find yesterday's email about the contract and tell me what it says.\"",
+        "que_es_operaciones_titulo": "Supported operations:",
+        "que_es_tabla_header_operacion": "Operation",
+        "que_es_tabla_header_descripcion": "What it does",
+        "que_es_tabla_fila1_descripcion": "Sends an email (text and/or HTML)",
+        "que_es_tabla_fila2_descripcion": "Searches the inbox with filters (unread, sender, subject, date)",
+        "que_es_tabla_fila3_descripcion": "Retrieves the full content of a specific email",
+        "que_es_callout_titulo": "Gmail and Outlook no longer accept a password",
+        "que_es_callout_texto": "Google disabled password authentication for email in March 2025, and Microsoft did the same on April 30, 2026. If you're going to connect Gmail or Microsoft 365, you have to use the corresponding <strong>OAuth2</strong> mode — the username/password mode only works with self-hosted mail servers or other providers that still allow it.",
+        "prerrequisitos_titulo": "Prerequisites",
+        "prerrequisitos_item1": "An email account dedicated to this integration — don't use your personal mailbox.",
+        "prerrequisitos_item2": "If you're going to use <strong>Gmail</strong>: access to Google Cloud Console to create OAuth2 credentials.",
+        "prerrequisitos_item3": "If you're going to use <strong>Microsoft 365/Outlook</strong>: access to Microsoft Entra ID (Azure AD) to register an app, and confirmation that SMTP AUTH is enabled for that mailbox (Microsoft disables it by default on new accounts).",
+        "prerrequisitos_item4": "If you're going to use a <strong>self-hosted server</strong>: the SMTP/IMAP connection details (host, port) from your mail administrator, and an app password if the provider requires one.",
+        "config_fabricante_titulo": "Provider-side configuration",
+        "config_fabricante_camino_a_titulo": "Path A — Gmail / Google Workspace (OAuth2)",
+        "config_fabricante_a_paso1": "<strong>Create (or use) a project in Google Cloud Console</strong> — <a href=\"https://console.cloud.google.com/\" target=\"_blank\" rel=\"noopener\">console.cloud.google.com</a>.",
+        "config_fabricante_a_paso2": "<strong>Enable the Gmail API</strong> for that project (\"APIs & Services\" → \"Enable APIs and Services\" → search for \"Gmail API\").",
+        "config_fabricante_a_paso3": "<strong>Create OAuth 2.0 credentials</strong> (\"Credentials\" → \"Create Credentials\" → \"OAuth client ID\"), type \"Web application\", adding the Redirect URI that Ruvic shows you when configuring the connector.",
+        "config_fabricante_a_paso4": "<strong>Copy the generated Client ID and Client Secret</strong> — you'll need them in the Configuration in Ruvic section.",
+        "config_fabricante_a_paso5": "If the project is in \"Testing\" mode on the OAuth consent screen, add the Gmail account you'll be using as a \"Test user\", or publish the app if you need to use any account.",
+        "config_fabricante_camino_b_titulo": "Path B — Microsoft 365 / Outlook (OAuth2)",
+        "config_fabricante_b_paso1": "<strong>Register an app</strong> in the <a href=\"https://entra.microsoft.com/\" target=\"_blank\" rel=\"noopener\">Microsoft Entra admin center</a> → \"App registrations\" → \"New registration\".",
+        "config_fabricante_b_paso2": "<strong>Add the Redirect URI</strong> that Ruvic shows you, in the \"Authentication\" section.",
+        "config_fabricante_b_paso3": "<strong>Create a Client Secret</strong> under \"Certificates & secrets\" — copy it immediately, it's only shown once.",
+        "config_fabricante_b_paso4": "<strong>Grant the API permissions</strong> (\"API permissions\" → \"Add a permission\" → \"APIs my organization uses\" → search for \"Office 365 Exchange Online\") with the scopes <code>SMTP.Send</code> and <code>IMAP.AccessAsUser.All</code>.",
+        "config_fabricante_b_paso5": "<strong>Confirm that SMTP AUTH is enabled</strong> for that specific mailbox — an administrator can check/enable it from the Exchange admin center or with PowerShell (<code>Set-CASMailbox -SmtpClientAuthenticationDisabled $false</code>).",
+        "config_fabricante_camino_c_titulo": "Path C — Self-hosted mail server (username/password)",
+        "config_fabricante_c_paso1": "<strong>Ask your mail administrator</strong> for the connection details: SMTP host and port, IMAP host and port.",
+        "config_fabricante_c_paso2": "<strong>Generate an app password</strong> if the provider requires one (some hosting panels like cPanel call it that, or they simply use the account's regular password).",
+        "config_fabricante_c_paso3": "<strong>Confirm that the account has SMTP and IMAP enabled</strong> — some providers disable them by default on new accounts.",
+        "permisos_titulo": "Required permissions",
+        "permisos_tabla_header_modo": "Mode",
+        "permisos_tabla_header_alcance": "Scope granted",
+        "permisos_tabla_fila1_modo": "Gmail (OAuth2)",
+        "permisos_tabla_fila1_alcance": "Scope <code>https://mail.google.com/</code> — full email access (send and read), with no access to Drive, Calendar, or other Google services",
+        "permisos_tabla_fila2_modo": "Microsoft (OAuth2)",
+        "permisos_tabla_fila2_alcance": "Scopes <code>SMTP.Send</code> and <code>IMAP.AccessAsUser.All</code> — email only, with no access to OneDrive, Calendar, or Teams",
+        "permisos_tabla_fila3_modo": "Password (self-hosted server)",
+        "permisos_tabla_fila3_alcance": "Whatever scope the email account has on the server — use a dedicated account, not one with administrative mail privileges",
+        "config_ruvic_titulo": "Configuration in Ruvic",
+        "config_ruvic_parrafo1": "Go to <strong>Settings → Connectors</strong>, find the <strong>SMTP / IMAP</strong> card and click <strong>Configure</strong>. Choose the mode based on your provider:",
+        "config_ruvic_tabla_header_modo": "Mode",
+        "config_ruvic_tabla_header_cuando": "When to use it",
+        "config_ruvic_tabla_fila1_modo": "Username and password",
+        "config_ruvic_tabla_fila1_cuando": "Self-hosted mail server, or providers that still allow passwords",
+        "config_ruvic_tabla_fila2_modo": "Gmail / Google Workspace (OAuth2)",
+        "config_ruvic_tabla_fila2_cuando": "Required for any Gmail account",
+        "config_ruvic_tabla_fila3_modo": "Microsoft 365 / Outlook (OAuth2)",
+        "config_ruvic_tabla_fila3_cuando": "Required for any Outlook/Microsoft 365 account",
+        "config_ruvic_parrafo2": "Fill in the fields for the chosen mode with what you obtained in the previous section, and click",
+        "config_ruvic_boton_probar_conexion": "Test connection",
+        "verificacion_titulo": "Verification",
+        "verificacion_paso1": "<strong>Successful connection test.</strong> The <em>Test connection</em> button should respond: <em>\"Successful connection to [IMAP server] (mode: ...)\"</em>.",
+        "verificacion_paso2_texto": "<strong>Minimal test with the agent.</strong> Ask for something read-only first:",
+        "verificacion_paso2_ejemplo": "\"Do I have unread emails?\"",
+        "verificacion_paso3_texto": "<strong>Send test (optional, be careful).</strong> Ask for a low-risk send, for example to your own account:",
+        "verificacion_paso3_ejemplo": "\"Send me a test email to myself.\"",
+        "solucion_problemas_titulo": "Troubleshooting",
+        "solucion_problemas_tabla_header_mensaje": "Message / symptom",
+        "solucion_problemas_tabla_header_causa": "Likely cause and solution",
+        "solucion_problemas_fila1_mensaje": "\"SMTP/IMAP authentication failed\" with Gmail or Outlook",
+        "solucion_problemas_fila1_causa": "You're using password mode with a provider that no longer accepts it. Switch to the corresponding OAuth2 mode.",
+        "solucion_problemas_fila2_mensaje": "\"550 5.7.30 Basic authentication is not supported\" (Microsoft)",
+        "solucion_problemas_fila2_causa": "Confirm you're using Microsoft OAuth2 mode, not password — this is the exact message Microsoft returns when a password is attempted.",
+        "solucion_problemas_fila3_mensaje": "\"Could not refresh the OAuth2 token...\" (HTTP 400/401)",
+        "solucion_problemas_fila3_causa": "Authorization was revoked, or the Client Secret changed. Re-authorize the connector from Settings → Connectors.",
+        "solucion_problemas_fila4_mensaje": "\"Could not connect...\" (timeout/network)",
+        "solucion_problemas_fila4_causa": "Check the configured host/port (password mode), or whether a firewall is blocking ports 587/993.",
+        "solucion_problemas_fila5_mensaje": "SMTP AUTH disabled (Microsoft)",
+        "solucion_problemas_fila5_causa": "Ask a Microsoft 365 administrator to enable SMTP AUTH for that specific mailbox — it comes disabled by default on new accounts.",
+        "faq_titulo": "FAQ and security notes",
+        "faq_pregunta1_titulo": "Why can't I just use my Gmail password?",
+        "faq_pregunta1_respuesta": "Because Google disabled it for this purpose in March 2025 — it's a Google security decision, not a limitation of this connector. The replacement is OAuth2.",
+        "faq_pregunta2_titulo": "Can the connector read/send any email in my account?",
+        "faq_pregunta2_respuesta": "Only within the granted scopes (email), and only what the agent is explicitly asked to do — there's no indefinite \"background\" access beyond the calls that actually run.",
+        "faq_pregunta3_titulo": "Where are the credentials stored?",
+        "faq_pregunta3_respuesta": "As a secret in the platform's credential store. The interface never displays them again.",
+        "faq_pregunta4_titulo": "Credential rotation",
+        "faq_pregunta4_respuesta": "For OAuth2, the platform renews the token automatically — you only need to re-authorize if the authorization is manually revoked. For password mode, rotate the app password periodically according to your provider's policy.",
+        "faq_callout_titulo": "Best practices",
+        "faq_callout_texto": "Use an email account dedicated to this integration, not your personal mailbox; for OAuth2, grant only the email scopes (don't check additional Calendar/Drive/OneDrive permissions when creating credentials); and confirm with the user before the agent sends emails to multiple recipients."
+      }
+    };
+  </script>
+</body>
+</html>

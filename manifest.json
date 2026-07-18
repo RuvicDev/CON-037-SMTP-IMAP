@@ -1,0 +1,94 @@
+{
+  "id": "smtp_imap",
+  "name": "SMTP / IMAP",
+  "name_en": "SMTP / IMAP",
+  "version": "1.0.0",
+  "description": "Correo genérico para cualquier proveedor: enviar correos por SMTP y leer/buscar en la bandeja con filtros por IMAP. Incluye OAuth2 para Gmail y Microsoft 365/Outlook.",
+  "description_en": "Generic email for any provider: send emails via SMTP and search/read the inbox with filters via IMAP. Includes OAuth2 for Gmail and Microsoft 365/Outlook.",
+  "category": "utilities",
+  "category_en": "utilities",
+  "keywords": ["smtp", "imap", "correo", "email", "gmail", "outlook", "microsoft 365", "oauth2", "bandeja de entrada", "inbox"],
+  "icon": "icon.svg",
+  "library": {
+    "package": "ruvic-smtp-imap-connector",
+    "install": "pip install git+https://github.com/tu-org/conector-smtp-imap.git#subdirectory=lib",
+    "import_name": "ruvic_smtp_imap_connector"
+  },
+  "auth_modes": [
+    {
+      "id": "password",
+      "label": "Usuario y contraseña (servidor propio u otros proveedores)",
+      "fields": [
+        { "key": "email_address", "label": "Dirección de correo", "type": "text", "required": true, "placeholder": "notificaciones@miempresa.com" },
+        { "key": "password", "label": "Contraseña (o contraseña de aplicación)", "type": "password", "secret": true, "required": true },
+        { "key": "smtp_host", "label": "Servidor SMTP", "type": "text", "required": true, "placeholder": "smtp.miempresa.com" },
+        { "key": "smtp_port", "label": "Puerto SMTP", "type": "number", "required": false, "default": "587" },
+        { "key": "imap_host", "label": "Servidor IMAP", "type": "text", "required": true, "placeholder": "imap.miempresa.com" },
+        { "key": "imap_port", "label": "Puerto IMAP", "type": "number", "required": false, "default": "993" },
+        { "key": "request_timeout", "label": "Timeout de conexión (segundos)", "type": "number", "required": false, "default": "20" }
+      ]
+    },
+    {
+      "id": "oauth2_gmail",
+      "label": "Autorizar con Gmail / Google Workspace (OAuth2)",
+      "fields": [
+        { "key": "email_address", "label": "Dirección de correo de Gmail", "type": "text", "required": true },
+        { "key": "gmail_client_id", "label": "Client ID", "type": "text", "required": true, "help_text": "Client ID de tu proyecto en Google Cloud Console, con la Redirect URI de la plataforma registrada." },
+        { "key": "gmail_client_secret", "label": "Client Secret", "type": "password", "secret": true, "required": true },
+        {
+          "key": "gmail_refresh_token",
+          "label": "Autorización de la cuenta",
+          "type": "oauth2_authorization",
+          "secret": true,
+          "required": true,
+          "oauth2": {
+            "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+            "token_url": "https://oauth2.googleapis.com/token",
+            "scopes": ["https://mail.google.com/"],
+            "pkce": true,
+            "capture": "refresh_token",
+            "client_credentials": "user",
+            "extra_authorize_params": { "access_type": "offline", "prompt": "consent" }
+          }
+        },
+        { "key": "request_timeout", "label": "Timeout de conexión (segundos)", "type": "number", "required": false, "default": "20" }
+      ]
+    },
+    {
+      "id": "oauth2_microsoft",
+      "label": "Autorizar con Microsoft 365 / Outlook (OAuth2)",
+      "fields": [
+        { "key": "email_address", "label": "Dirección de correo de Outlook/Microsoft 365", "type": "text", "required": true },
+        { "key": "ms_client_id", "label": "Application (client) ID", "type": "text", "required": true, "help_text": "Client ID de tu app registrada en Microsoft Entra ID (Azure AD), con la Redirect URI de la plataforma registrada." },
+        { "key": "ms_client_secret", "label": "Client Secret", "type": "password", "secret": true, "required": true },
+        {
+          "key": "ms_refresh_token",
+          "label": "Autorización de la cuenta",
+          "type": "oauth2_authorization",
+          "secret": true,
+          "required": true,
+          "oauth2": {
+            "authorization_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+            "token_url": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            "scopes": ["https://outlook.office365.com/SMTP.Send", "https://outlook.office365.com/IMAP.AccessAsUser.All", "offline_access"],
+            "pkce": true,
+            "capture": "refresh_token",
+            "client_credentials": "user"
+          }
+        },
+        { "key": "request_timeout", "label": "Timeout de conexión (segundos)", "type": "number", "required": false, "default": "20" }
+      ]
+    }
+  ],
+  "env_prefix": "RUVIC_SMTP_IMAP_",
+  "operations": [
+    "email.send_email",
+    "email.search_emails",
+    "email.get_email"
+  ],
+  "test_connection": true,
+  "docs": {
+    "skill": "SKILL.md",
+    "permissions_note": "Para el modo de contraseña, usa una cuenta o buzón dedicado a esta integración, con una contraseña de aplicación si el proveedor lo requiere. Para Gmail y Microsoft 365, el modo de contraseña ya no funciona (ambos proveedores desactivaron la autenticación básica para SMTP/IMAP) — usa el modo OAuth2 correspondiente, que solicita únicamente los scopes de correo (envío y lectura), sin acceso a otros servicios de la cuenta (calendario, archivos, etc.)."
+  }
+}
